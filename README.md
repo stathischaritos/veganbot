@@ -29,8 +29,9 @@ Recipes:
 TODO:
 -----
   - Add random waiting times before "seen" and "writing" and answering so that
-  it feels like a real person. 
-
+  it feels like a real person.
+  - Change tfidf library, do not remove stopwords.
+  
 Links:
 ------
 

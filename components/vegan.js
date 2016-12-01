@@ -16,7 +16,9 @@ var api = null;
 // Initialize question answering model
 var natural = require('natural');
 var tfidf = null;
+var questions = {};
 var fs = require('fs');
+var TOPN = 5;
 // Module Nested Actions
 var actions = {
   vegan: vegan,
@@ -41,6 +43,20 @@ function init (fbAPI) {
     }
     console.log('tfidf questions model loaded...');
   });
+  // Load old questions.
+  fs.readFile('questions.json', 'utf8', function (error, s) {
+    if (error) console.log(error);
+    if (s) {
+      try {
+        questions = new natural.TfIdf(JSON.parse(s));
+      } catch (e) {
+        console.log('Unable to load question set!');
+      }
+    } else {
+      questions = {};
+    }
+    console.log('Old questions loaded...');
+  });
 }
 // -----------------------------------------------------------------------------
 /** Save the current tfidf model to disk.
@@ -49,13 +65,20 @@ function init (fbAPI) {
 */
 // -----------------------------------------------------------------------------
 function saveState (fbAPI) {
+  // Save tfidf model
   if (tfidf) {
-    var s = JSON.stringify(tfidf);
-    fs.writeFile('questions_tfidf.json', s, function (error) {
+    var sTfidf = JSON.stringify(tfidf);
+    fs.writeFile('questions_tfidf.json', sTfidf, function (error) {
       if (error) console.log(error);
       console.log('tfidf questions model saved!');
     });
   }
+  // Save original questions
+  var sQuestions = JSON.stringify(questions);
+  fs.writeFile('questions.json', sQuestions, function (error) {
+    if (error) console.log(error);
+    console.log('questions saved!');
+  });
 }
 // -----------------------------------------------------------------------------
 /** Choose what action to perform.
@@ -68,7 +91,7 @@ function resolve (message) {
     if (err) console.log(err);
   });
   // Check if you were asked a question.
-  if (message.body.indexOf('?') !== -1) {
+  if (message.body.indexOf('?') !== -1 || message.body.startsWith('train')) {
     actions.answer(message);
   } else {
     actions.vegan(message);
@@ -100,18 +123,50 @@ function answer (message) {
     // TODO:: implement response retrieval method.
     // Add new question to model.
     if (tfidf) {
-      // Add document to model.
-      tfidf.addDocument(message.body);
-      // Save updated model. Maybe dont do this on every question but on shutdown.
+      // Train bot.
+      var id = null;
+      if (message.body.startsWith('train')) {
+        var parts = message.body.split(' ');
+        id = parts[1];
+        parts = parts.slice(2, parts.length);
+        var response = parts.join(' ');
+        if (questions[id]) questions[id].response = response;
+      } else {
+        // Add document to model.
+        tfidf.addDocument(message.body);
+        id = tfidf.documents.length - 1;
+        questions[id] = { question: message.body };
+        console.log(id);
+        // Save updated model. Maybe dont do this on every question but on shutdown.
+        // Get similar questions and respond.
+        var results = [];
+        tfidf.tfidfs(message.body, function (i, measure) {
+          console.log('document #' + i + ' is ' + measure);
+          results.push({ id: i, score: measure });
+        });
+        // Sort Results
+        results.sort(function (a, b) {
+          if (a.score > b.score) {
+            return 0;
+          } else {
+            return 1;
+          }
+        });
+        // Get top N results
+        results = results.slice(0, TOPN);
+        // Add text
+        results.map(function (result) {
+          result.text = this[result.id].question;
+          result.response = this[result.id].response;
+          return result;
+        }, questions);
+        // TODO::
+        // Take these top N questions along with a context and retrieve a response.
+        // The response should be inside one of these questions?
+        // Respond
+        api.sendMessage(JSON.stringify(results), message.threadID);
+      }
       saveState();
-      // Get similar questions and respond.
-      var results = [];
-      tfidf.tfidfs(message.body, function (i, measure) {
-        console.log('document #' + i + ' is ' + measure);
-        results.push(i);
-      });
-      console.log(results);
-      api.sendMessage(JSON.stringify(results), message.threadID);
     } else {
       api.sendMessage('...I can`t answer this question.', message.threadID);
     }
