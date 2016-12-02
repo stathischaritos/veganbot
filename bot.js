@@ -1,7 +1,7 @@
 /**
 *  @fileoverview Bot API. General bot initialisation and actions.
 *
-*  @author       Marios Tzakris
+*  @author       Stathis Charitos
 *
 *  @requires     NPM:facebook-chat-api
 *  @requires     ../config/facebook

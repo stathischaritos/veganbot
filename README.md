@@ -1,6 +1,6 @@
 Intro
 ------
-Bot that helps you go vegan
+Bot that helps you go vegan.
 
 Features:
 ---------
@@ -17,8 +17,7 @@ Features:
 MVP:
 ----
 
-  - Give instructions on how to make a very tasty and easy vegan dish. Start
-  with "gemista", "fakes" and "araka me patates". "ladera".
+  - Give instructions on how to make one very tasty and easy vegan dish.
   - Log every interaction
 
 Recipes:
@@ -31,7 +30,7 @@ TODO:
   - Add random waiting times before "seen" and "writing" and answering so that
   it feels like a real person.
   - Change tfidf library, do not remove stopwords.
-  
+
 Links:
 ------
 

@@ -123,8 +123,8 @@ function answer (message) {
     // TODO:: implement response retrieval method.
     // Add new question to model.
     if (tfidf) {
-      // Train bot.
       var id = null;
+      // Check if this is a training message and train model.
       if (message.body.startsWith('train')) {
         var parts = message.body.split(' ');
         id = parts[1];
